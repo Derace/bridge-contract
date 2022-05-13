@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 import "@openzeppelin/contracts/security/Pausable.sol";
 import "@openzeppelin/contracts/access/AccessControl.sol";
+// Draft contract used in place of writing own implementation
 import "@openzeppelin/contracts/utils/cryptography/draft-EIP712.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
@@ -61,7 +62,8 @@ contract DeRaceBridge is EIP712, Pausable, AccessControl, ERC721Holder {
     /// @param tokenId The token ID of the token being received
     event CompleteErc721Transfer(address indexed sender, address indexed token, uint256 tokenId);
 
-    /// @notice Role that allows changing global settings of the bridge (`version`, `skipNonce` for specific address, )
+    /// @notice Role that allows changing global settings of the bridge (`version`, `skipNonce` for specific address)
+    /// @dev This role is only granted for multisigs (for example Gnosis Multisig) and is a global administrative role
     bytes32 public constant SUPER_VALIDATOR_ROLE = keccak256("SUPER_VALIDATOR_ROLE");
     /// @notice Role that allows signing off-chain transactions, all off-chain transactions in `completeErcXTransfer` need to be signed by an address holding this role
     bytes32 public constant VALIDATOR_ROLE = keccak256("APPROVER_ROLE");
@@ -106,9 +108,9 @@ contract DeRaceBridge is EIP712, Pausable, AccessControl, ERC721Holder {
     /// @notice Send ERC20 tokens off-chain
     /// @param token Token contract address
     /// @param amount Number of ERC20 tokens sent
-    function transferErc20(address token, uint256 amount) public whenNotPaused {
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
-        emit TransferErc20(msg.sender, token, amount);
+    function transferErc20(IERC20 token, uint256 amount) external whenNotPaused {
+        token.safeTransferFrom(msg.sender, address(this), amount);
+        emit TransferErc20(msg.sender, address(token), amount);
     }
 
     /// @notice Send ERC20 tokens off-chain
@@ -120,14 +122,14 @@ contract DeRaceBridge is EIP712, Pausable, AccessControl, ERC721Holder {
     /// @notice Send ERC721 token off-chain
     /// @param token Token contract address
     /// @param tokenId The token ID of the token being sent off-chain
-    function transferErc721(IERC721 token, uint256 tokenId) public whenNotPaused {
+    function transferErc721(IERC721 token, uint256 tokenId) external whenNotPaused {
         _transferErc721(token, tokenId);
     }
 
     /// @notice Send ERC721 as if they were fungible when only the amount is important
     /// @param token Token contract address
     /// @param amount Number of ERC20 tokens sent
-    function transferErc721Any(IERC721Enumerable token, uint256 amount) public whenNotPaused {
+    function transferErc721Any(IERC721Enumerable token, uint256 amount) external whenNotPaused {
         for (uint256 index = 0; index < amount; index++) {
             uint256 tokenId = token.tokenOfOwnerByIndex(msg.sender, 0);
             _transferErc721(token, tokenId);
@@ -139,7 +141,7 @@ contract DeRaceBridge is EIP712, Pausable, AccessControl, ERC721Holder {
     /// @param amount Number of ERC20 tokens being received
     /// @param signature The signature signed by `VALIDATOR_ROLE` that verifies the off-chain transfer
     function completeErc20Transfer(address token, uint256 amount, bytes calldata signature)
-        public
+        external
         externalTransfer(METHOD_ERC20, token, amount, signature)
         whenNotPaused
     {
@@ -158,7 +160,7 @@ contract DeRaceBridge is EIP712, Pausable, AccessControl, ERC721Holder {
     /// @param tokenId The token ID of the token being received
     /// @param signature The signature signed by `VALIDATOR_ROLE` that verifies the off-chain transfer
     function completeErc721Transfer(IERC721 token, uint256 tokenId, bytes calldata signature)
-        public
+        external
         externalTransfer(METHOD_ERC721, address(token), tokenId, signature)
         whenNotPaused
     {
@@ -170,7 +172,7 @@ contract DeRaceBridge is EIP712, Pausable, AccessControl, ERC721Holder {
     /// @param amount Number of ERC721 tokens being received
     /// @param signature The signature signed by `VALIDATOR_ROLE` that verifies the off-chain transfer
     function completeErc721AnyTransfer(IERC721Enumerable token, uint256 amount, bytes calldata signature)
-        public
+        external
         externalTransfer(METHOD_ERC721ANY, address(token), amount, signature)
         whenNotPaused
     {
