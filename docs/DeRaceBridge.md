@@ -84,9 +84,9 @@ This allows to transfer an amount of ERC721 without needing to specify their dif
 function SUPER_VALIDATOR_ROLE() external view returns (bytes32)
 ```
 
-Role that allows changing global settings of the bridge (`version`, `skipNonce` for specific address, )
+Role that allows changing global settings of the bridge (`version`, `skipNonce` for specific address)
 
-
+*This role is only granted for multisigs (for example Gnosis Multisig) and is a global administrative role*
 
 
 #### Returns
@@ -465,7 +465,7 @@ function supportsInterface(bytes4 interfaceId) external view returns (bool)
 ### transferErc20
 
 ```solidity
-function transferErc20(address token, uint256 amount) external nonpayable
+function transferErc20(contract IERC20 token, uint256 amount) external nonpayable
 ```
 
 Send ERC20 tokens off-chain
@@ -476,7 +476,7 @@ Send ERC20 tokens off-chain
 
 | Name | Type | Description |
 |---|---|---|
-| token | address | Token contract address |
+| token | contract IERC20 | Token contract address |
 | amount | uint256 | Number of ERC20 tokens sent |
 
 ### transferErc721
